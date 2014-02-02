@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -14,6 +14,26 @@
     <FileAlignment>512</FileAlignment>
     <StartupObject>
     </StartupObject>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <OldToolsVersion>3.5</OldToolsVersion>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -35,22 +55,22 @@
   <ItemGroup>
     <Reference Include="DotNetMagic2005, Version=5.0.1.0, Culture=neutral, PublicKeyToken=6bb96f3d82daa243, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>G:\Program Files\Atari\Neverwinter Nights 2\DotNetMagic2005.dll</HintPath>
+      <HintPath>Toolset\DotNetMagic2005.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="NWN2Toolset, Version=1.0.1588.0, Culture=neutral, PublicKeyToken=6bb96f3d82daa243, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>G:\Program Files\Atari\Neverwinter Nights 2\NWN2Toolset.dll</HintPath>
+      <HintPath>Toolset\NWN2Toolset.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="OEIShared, Version=1.0.1588.0, Culture=neutral, PublicKeyToken=6bb96f3d82daa243, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>G:\Program Files\Atari\Neverwinter Nights 2\OEIShared.dll</HintPath>
+      <HintPath>Toolset\OEIShared.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="SandBar, Version=1.3.4.1, Culture=neutral, PublicKeyToken=75b7ec17dd7c14c3, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>G:\Program Files\Atari\Neverwinter Nights 2\SandBar.dll</HintPath>
+      <HintPath>Toolset\SandBar.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -76,6 +96,18 @@
       <DependentUpon>ConversationConverterWizard.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
@@ -84,7 +116,4 @@
   <Target Name="AfterBuild">
   </Target>
   -->
-  <PropertyGroup>
-    <PostBuildEvent>copy "$(TargetPath)" "G:\Program Files\Atari\Neverwinter Nights 2\NWN2Toolset\Plugins\"</PostBuildEvent>
-  </PropertyGroup>
 </Project>
