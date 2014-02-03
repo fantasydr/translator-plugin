@@ -8,7 +8,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Xml.Serialization;
 
-namespace FDRConversationTranslator
+namespace ConversationTranslator
 {
     public partial class Logger : Form, ILogger
     {

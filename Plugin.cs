@@ -4,7 +4,7 @@ using TD.SandBar;
 using NWN2Toolset;
 using NWN2Toolset.Plugins;
 
-namespace FDRConversationTranslator
+namespace ConversationTranslator
 {
     public class ConversationTranslatorPlugin : INWN2Plugin
     {

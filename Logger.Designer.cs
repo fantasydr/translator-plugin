@@ -1,4 +1,4 @@
-﻿namespace FDRConversationTranslator
+﻿namespace ConversationTranslator
 {
     partial class Logger
     {

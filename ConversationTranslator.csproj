@@ -8,8 +8,8 @@
     <ProjectGuid>{2C30A812-7605-4C4C-A8A3-D1DB1FE35074}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>FDRConversationTranslator</RootNamespace>
-    <AssemblyName>FDRConversationTranslator</AssemblyName>
+    <RootNamespace>ConversationTranslator</RootNamespace>
+    <AssemblyName>ConversationTranslator</AssemblyName>
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <StartupObject>
