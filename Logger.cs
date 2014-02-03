@@ -19,51 +19,43 @@ namespace FDRConversationTranslator
         }
 
         Setting _settings = new Setting();
+
+        Setting DefaultSettings()
+        {
+            // sample settings
+            Setting newSetting = new Setting();
+            newSetting.origin = @"C:\origin.txt";
+            newSetting.target = @"C:\target.txt";
+            newSetting.root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"Neverwinter Nights 2\modules\");
+            newSetting.miss = @"C:\miss.log";
+            newSetting.output = @"C:\output.log";
+
+            newSetting.modules = new string[]{
+                                "Module1",
+                                "Module2",
+            };
+
+            return newSetting;
+        }
+
         void LoadSettings(string filename)
         {
-            AppendLog(string.Format("Loading setting file {0}...", filename));
+            filename = filename.Trim();
 
-            Setting newSetting = null;
-
-            using (StreamReader sr = new StreamReader(filename))
+            if (filename.Length > 0)
             {
-                XmlSerializer s = new XmlSerializer(_settings.GetType());
-                newSetting = s.Deserialize(sr) as Setting;
+                AppendLog(string.Format("Loading setting file {0}...", filename));
+
+                using (StreamReader sr = new StreamReader(filename))
+                {
+                    XmlSerializer s = new XmlSerializer(_settings.GetType());
+                    _settings = s.Deserialize(sr) as Setting;
+                }
             }
-
-            //// sample settings
-            //newSetting = new Setting();
-            //newSetting.origin = @"D:\InfinityMod\BGEE\decompiled\en_US-11-08\string-en_US.txt";
-            //newSetting.target = @"D:\InfinityMod\BGEE\decompiled\zh_CN-11-25\string-zh_CN.txt";
-            //newSetting.root = @"D:\Documents\Neverwinter Nights 2\modules\";
-            //newSetting.miss = @"D:\miss.log";
-            //newSetting.output = @"D:\output.log";
-            //newSetting.modules = new string[]{
-            //                    "BG_A",
-            //                    "BG_B1",
-            //                    "BG_B2",
-            //                    "BG_C",
-            //                    "BG_C1",
-            //                    "BG_D1",
-            //                    "BG_D2",
-            //                    "BG_D3",
-            //                    "BG_D4",
-            //                    "BG_E",
-            //                    "BG_F",
-            //                    "BG_G",
-            //                    "BG_H",
-            //                    "BG_I",
-            //                    "BG_J",
-            //                    "BG_LOBBY",
-            //                    "TOSC_A",
-            //                    "TOSC_B",
-            //                    "TOSC_C",
-            //                    "TOSC_D.mod",
-            //                    "TOSC_E.mod",
-            //};
-
-            //
-            _settings = newSetting;
+            else
+            {
+                _settings = DefaultSettings();
+            }
 
             AppendLog(string.Format("Setting loaded:\r\n    Origin:{0}\r\n    Target:{1}\r\n    Miss:{2}\r\n    Output:{3}\r\n    Root:{4}\r\n", 
                                                            _settings.origin, _settings.target,
@@ -170,6 +162,16 @@ namespace FDRConversationTranslator
                     SaveSetting(fd.FileName);
                 }
             }
+        }
+
+        private void Logger_Load(object sender, EventArgs e)
+        {
+            AppendLog("================================");
+            AppendLog(" If you want to change the setting, save it and modify the XML.");
+            AppendLog(" Then load the modified XML again.");
+            AppendLog("================================");
+
+            LoadSettings("");
         }
     }
 

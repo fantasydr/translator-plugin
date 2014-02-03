@@ -110,6 +110,11 @@ namespace FDRConversationTranslator
     {
         static public Dictionary<int, string> LoadFullText(string filename)
         {
+            return LoadFullText(filename, true);
+        }
+
+        static public Dictionary<int, string> LoadFullText(string filename, bool removeToken)
+        {
             Regex entry = new Regex(@"^String #([0-9]+) is");
 
             Regex token = new Regex(@"\[[\w\s]+\]");
@@ -130,7 +135,10 @@ namespace FDRConversationTranslator
                     {
                         if (reading >= 0 && full != null)
                         {
-                            string output = token.Replace(full.ToString(), "");
+                            string output = full.ToString();
+                            if (removeToken)
+                                output = token.Replace(full.ToString(), "");
+
                             strings.Add(reading, output.TrimEnd(trims));
                             full = null;
                         }
@@ -158,6 +166,18 @@ namespace FDRConversationTranslator
             }
 
             return strings;
+        }
+
+        static public void SaveFullText(string filename, Dictionary<int, string> dic)
+        {
+            using (StreamWriter output = new StreamWriter(filename))
+            {
+                output.WriteLine(string.Format(@"// Total:{0}", dic.Count));
+                foreach (var kv in dic)
+                {
+                    output.WriteLine(string.Format("String #{0} is ~{1}~", kv.Key, kv.Value));
+                }
+            }
         }
 
         Dictionary<int, string> _origin;
@@ -381,7 +401,7 @@ namespace FDRConversationTranslator
             // store the previous miss log
             if (File.Exists(missLog))
             {
-                var previous = StringMatcher.LoadFullText(missLog);
+                var previous = StringMatcher.LoadFullText(missLog, false); // keep token such as [TOKEN]
                 _external_logger.AppendLog(string.Format("Loading previous {0}...", previous.Count));
                 foreach (var kv in previous) // 
                 {

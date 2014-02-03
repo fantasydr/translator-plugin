@@ -149,6 +149,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Name = "Logger";
             this.Text = "Conversation Translator";
+            this.Load += new System.EventHandler(this.Logger_Load);
             this.splContainer.Panel1.ResumeLayout(false);
             this.splContainer.Panel1.PerformLayout();
             this.splContainer.Panel2.ResumeLayout(false);
