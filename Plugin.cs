@@ -4,15 +4,15 @@ using TD.SandBar;
 using NWN2Toolset;
 using NWN2Toolset.Plugins;
 
-namespace IEConversationConvert
+namespace FDRConversationTranslator
 {
-    public class IEConversationConvertPlugin : INWN2Plugin
+    public class ConversationTranslatorPlugin : INWN2Plugin
     {
-        private MenuButtonItem m_cMenuItem;
+        private MenuButtonItem _menuItem;
 
         private void HandlePluginLaunch(object sender, EventArgs e)
         {
-            using (ConversationConverterWizard frm = new ConversationConverterWizard())
+            using (Logger frm = new Logger())
             {
                 frm.ShowDialog();
             }
@@ -28,8 +28,8 @@ namespace IEConversationConvert
 
         public void Startup(INWN2PluginHost cHost)
         {
-            m_cMenuItem = cHost.GetMenuForPlugin(this);
-            m_cMenuItem.Activate += new EventHandler(this.HandlePluginLaunch);
+            _menuItem = cHost.GetMenuForPlugin(this);
+            _menuItem.Activate += new EventHandler(this.HandlePluginLaunch);
         }
 
         public void Unload(INWN2PluginHost cHost)
@@ -40,7 +40,7 @@ namespace IEConversationConvert
         {
             get
             {
-                return m_cMenuItem;
+                return _menuItem;
             }
         }
 
@@ -48,7 +48,7 @@ namespace IEConversationConvert
         {
             get
             {
-                return "Infinity Engine Conversation Converter";
+                return "Conversation Translator";
             }
         }
 
@@ -56,7 +56,7 @@ namespace IEConversationConvert
         {
             get
             {
-                return "Infinity Engine Conversation Converter";
+                return "Conversation Translator";
             }
         }
 
@@ -64,7 +64,7 @@ namespace IEConversationConvert
         {
             get
             {
-                return "IEConversationConvert";
+                return "FDRConversationTranslator";
             }
         }
 

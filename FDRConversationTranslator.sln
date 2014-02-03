@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IEConversationConvert", "IEConversationConvert.csproj", "{2C30A812-7605-4C4C-A8A3-D1DB1FE35074}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FDRConversationTranslator", "FDRConversationTranslator.csproj", "{2C30A812-7605-4C4C-A8A3-D1DB1FE35074}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
