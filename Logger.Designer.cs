@@ -30,6 +30,10 @@
         {
             this.lstMods = new System.Windows.Forms.ListBox();
             this.splContainer = new System.Windows.Forms.SplitContainer();
+            this.cbConversation = new System.Windows.Forms.CheckBox();
+            this.cbBlueprint = new System.Windows.Forms.CheckBox();
+            this.cbJournal = new System.Windows.Forms.CheckBox();
+            this.cbNoTranslate = new System.Windows.Forms.CheckBox();
             this.btnLoad = new System.Windows.Forms.Button();
             this.btnSave = new System.Windows.Forms.Button();
             this.cbReadonly = new System.Windows.Forms.CheckBox();
@@ -61,6 +65,10 @@
             // 
             // splContainer.Panel1
             // 
+            this.splContainer.Panel1.Controls.Add(this.cbConversation);
+            this.splContainer.Panel1.Controls.Add(this.cbBlueprint);
+            this.splContainer.Panel1.Controls.Add(this.cbJournal);
+            this.splContainer.Panel1.Controls.Add(this.cbNoTranslate);
             this.splContainer.Panel1.Controls.Add(this.btnLoad);
             this.splContainer.Panel1.Controls.Add(this.btnSave);
             this.splContainer.Panel1.Controls.Add(this.cbReadonly);
@@ -73,6 +81,52 @@
             this.splContainer.Size = new System.Drawing.Size(951, 663);
             this.splContainer.SplitterDistance = 65;
             this.splContainer.TabIndex = 2;
+            // 
+            // cbConversation
+            // 
+            this.cbConversation.AutoSize = true;
+            this.cbConversation.Checked = true;
+            this.cbConversation.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbConversation.Location = new System.Drawing.Point(740, 12);
+            this.cbConversation.Name = "cbConversation";
+            this.cbConversation.Size = new System.Drawing.Size(189, 19);
+            this.cbConversation.TabIndex = 7;
+            this.cbConversation.Text = "Include Conversation";
+            this.cbConversation.UseVisualStyleBackColor = true;
+            // 
+            // cbBlueprint
+            // 
+            this.cbBlueprint.AutoSize = true;
+            this.cbBlueprint.Checked = true;
+            this.cbBlueprint.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbBlueprint.Location = new System.Drawing.Point(569, 12);
+            this.cbBlueprint.Name = "cbBlueprint";
+            this.cbBlueprint.Size = new System.Drawing.Size(165, 19);
+            this.cbBlueprint.TabIndex = 6;
+            this.cbBlueprint.Text = "Include Blueprint";
+            this.cbBlueprint.UseVisualStyleBackColor = true;
+            // 
+            // cbJournal
+            // 
+            this.cbJournal.AutoSize = true;
+            this.cbJournal.Checked = true;
+            this.cbJournal.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbJournal.Location = new System.Drawing.Point(414, 12);
+            this.cbJournal.Name = "cbJournal";
+            this.cbJournal.Size = new System.Drawing.Size(149, 19);
+            this.cbJournal.TabIndex = 5;
+            this.cbJournal.Text = "Include Journal";
+            this.cbJournal.UseVisualStyleBackColor = true;
+            // 
+            // cbNoTranslate
+            // 
+            this.cbNoTranslate.AutoSize = true;
+            this.cbNoTranslate.Location = new System.Drawing.Point(414, 37);
+            this.cbNoTranslate.Name = "cbNoTranslate";
+            this.cbNoTranslate.Size = new System.Drawing.Size(117, 19);
+            this.cbNoTranslate.TabIndex = 3;
+            this.cbNoTranslate.Text = "Export Only";
+            this.cbNoTranslate.UseVisualStyleBackColor = true;
             // 
             // btnLoad
             // 
@@ -99,11 +153,11 @@
             this.cbReadonly.AutoSize = true;
             this.cbReadonly.Checked = true;
             this.cbReadonly.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbReadonly.Location = new System.Drawing.Point(806, 12);
+            this.cbReadonly.Location = new System.Drawing.Point(537, 37);
             this.cbReadonly.Name = "cbReadonly";
-            this.cbReadonly.Size = new System.Drawing.Size(93, 19);
+            this.cbReadonly.Size = new System.Drawing.Size(101, 19);
             this.cbReadonly.TabIndex = 2;
-            this.cbReadonly.Text = "ReadOnly";
+            this.cbReadonly.Text = "Read Only";
             this.cbReadonly.UseVisualStyleBackColor = true;
             // 
             // cbSkipCamp
@@ -111,7 +165,7 @@
             this.cbSkipCamp.AutoSize = true;
             this.cbSkipCamp.Checked = true;
             this.cbSkipCamp.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbSkipCamp.Location = new System.Drawing.Point(806, 37);
+            this.cbSkipCamp.Location = new System.Drawing.Point(644, 37);
             this.cbSkipCamp.Name = "cbSkipCamp";
             this.cbSkipCamp.Size = new System.Drawing.Size(133, 19);
             this.cbSkipCamp.TabIndex = 1;
@@ -120,7 +174,7 @@
             // 
             // btnStart
             // 
-            this.btnStart.Location = new System.Drawing.Point(691, 12);
+            this.btnStart.Location = new System.Drawing.Point(299, 12);
             this.btnStart.Name = "btnStart";
             this.btnStart.Size = new System.Drawing.Size(109, 34);
             this.btnStart.TabIndex = 0;
@@ -169,5 +223,9 @@
         private System.Windows.Forms.CheckBox cbSkipCamp;
         private System.Windows.Forms.Button btnLoad;
         private System.Windows.Forms.Button btnSave;
+        private System.Windows.Forms.CheckBox cbNoTranslate;
+        private System.Windows.Forms.CheckBox cbJournal;
+        private System.Windows.Forms.CheckBox cbBlueprint;
+        private System.Windows.Forms.CheckBox cbConversation;
     }
 }

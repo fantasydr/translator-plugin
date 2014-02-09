@@ -1,10 +1,17 @@
 ﻿using NWN2Toolset.NWN2.Data;
+using NWN2Toolset.NWN2.Data.Blueprints;
 using NWN2Toolset.NWN2.Data.ConversationData;
+using NWN2Toolset.NWN2.Data.Journal;
+using NWN2Toolset.NWN2.Data.Templates;
+using NWN2Toolset.NWN2.Data.TypedCollections;
+using OEIShared.IO;
+using OEIShared.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace ConversationTranslator
 {
@@ -104,6 +111,20 @@ namespace ConversationTranslator
         public string target;
         public string pattern;
         public double flex;
+
+        public StringMatchResult()
+        {
+            flex = -1.0;
+            index = -1;
+        }
+
+        public class Camparer : IComparer<StringMatchResult>
+        {
+            int IComparer<StringMatchResult>.Compare(StringMatchResult x, StringMatchResult y)
+            {
+                return x.flex.CompareTo(y.flex);
+            }
+        }
     }
 
     class StringMatcher
@@ -230,8 +251,8 @@ namespace ConversationTranslator
                     _escaped.Add(beforeEscape, duplicated);
                     _escaped.Add(kv.Key, kv.Value);
 
-                    Console.WriteLine(string.Format("Conflict Previous: {0}, {1}", beforeEscape, duplicated));
-                    Console.WriteLine(string.Format("Conflict Current: {0}, {1}", kv.Key, kv.Value));
+                    //Console.WriteLine(string.Format("Conflict Previous: {0}, {1}", beforeEscape, duplicated));
+                    //Console.WriteLine(string.Format("Conflict Current: {0}, {1}", kv.Key, kv.Value));
                 }
                 else
                 {
@@ -297,30 +318,91 @@ namespace ConversationTranslator
         public StringMatchResult Find(string pattern)
         {
             StringMatchResult r = new StringMatchResult();
-            r.index = -1;
 
             if (!SearchFromDict(_origin_rev, pattern, r))
             {
                 string escaped = EscapeString(pattern);
                 if (!SearchFromDict(_escaped, escaped, r))
                 {
-                    SearchFlexible(escaped, r);
+                    r = SearchFlexible(escaped);
                 }
             }
 
             return r;
         }
 
-        private void SearchFlexible(string escaped, StringMatchResult r)
+        public void DoWork()
+        {
+            // Queue a task.
+            System.Threading.ThreadPool.QueueUserWorkItem(
+                new System.Threading.WaitCallback(SomeLongTask));
+            // Queue another task.
+            System.Threading.ThreadPool.QueueUserWorkItem(
+                new System.Threading.WaitCallback(AnotherLongTask));
+        }
+
+        private void SomeLongTask(Object state)
+        {
+            // Insert code to perform a long task.
+        }
+
+        private void AnotherLongTask(Object state)
+        {
+            // Insert code to perform a long task.
+        }
+
+        private StringMatchResult SearchFlexible(string escaped)
         {
             // flexible matching
-            int delta = Math.Min((int)(escaped.Length * 0.5), 20); // no more than 20 char
+            int delta = Math.Min((int)(escaped.Length * 0.5), 100); // no more than 20 char
             int distanceBegin = Math.Max(1, escaped.Length - delta);
             int distanceEnd = escaped.Length + delta;
 
             int indexBegin = BinarySearch(_sorted, distanceBegin);
             int indexEnd = BinarySearch(_sorted, distanceEnd);
+            if (indexEnd >= _sorted.Length) indexEnd = _sorted.Length - 1;
 
+            // use 8 threads
+            int tasks = Math.Max(1, ((indexEnd - indexBegin) + 1) / 8);
+            List<StringMatchResult> results = new List<StringMatchResult>();
+            List<ManualResetEvent> doneEvents = new List<ManualResetEvent>();
+
+            while (indexBegin <= indexEnd)
+            {
+                int currentBegin = indexBegin;
+                int currentEnd = currentBegin + tasks - 1;
+                if (currentEnd > indexEnd)
+                    currentEnd = indexEnd;
+
+                StringMatchResult currentResult = new StringMatchResult();
+                results.Add(currentResult);
+
+                ManualResetEvent doneEvent = new ManualResetEvent(false);
+                doneEvents.Add(doneEvent);
+
+                // Queue another task.
+                ThreadPool.QueueUserWorkItem(new WaitCallback(delegate(Object state)
+                {
+                    SearchFlexibleWorker(escaped, currentResult, distanceEnd, currentBegin, currentEnd);
+                    doneEvent.Set();
+                }));
+
+                indexBegin = currentEnd + 1;
+            }
+
+            foreach (ManualResetEvent doneEvent in doneEvents)
+            {
+                doneEvent.WaitOne();
+            }
+            //WaitHandle.WaitAll(doneEvents.ToArray());
+            
+            results.Sort(new StringMatchResult.Camparer());
+
+            return results[results.Count - 1];
+        }
+
+        private void SearchFlexibleWorker(string escaped, StringMatchResult r, int distanceEnd, int indexBegin, int indexEnd)
+        {
             string found = null;
             int minDistance = distanceEnd;
             for (int i = indexBegin; i <= indexEnd; i++)
@@ -336,12 +418,15 @@ namespace ConversationTranslator
 
             if (found != null)
             {
-                r.flex = (double)LevenshteinDistance.CalcPercent(found, escaped, minDistance);
                 int index = _escaped[found];
-                r.index = index;
-                r.target = _target[index];
-                r.origin = _origin[index];
-                r.pattern = escaped;
+                if (_target.ContainsKey(index))
+                {
+                    r.flex = (double)LevenshteinDistance.CalcPercent(found, escaped, minDistance);
+                    r.index = index;
+                    r.target = _target[index];
+                    r.origin = _origin[index];
+                    r.pattern = escaped;
+                }
             }
         }
 
@@ -384,17 +469,31 @@ namespace ConversationTranslator
         int _flexibleCounter = 0;
 
         bool _isReadonly = false;
+        bool _skipTranslation = false;
+        bool _skipCampaign = false;
 
-        public Translator(string origin, string target, ILogger logger, bool isReadonly)
+        bool _includeJournal = false;
+        bool _includeBlueprint = false;
+        bool _includeConversation = false;
+
+        public Translator(string origin, string target, ILogger logger, bool isReadonly,
+                          bool skipTranslation, bool skipCampaign, 
+                          bool includeJournal, bool includeBlueprint, bool includeConversation)
         {
             _external_logger = logger;
             _matcher = new StringMatcher(origin, target);
             _isReadonly = isReadonly;
+            _skipTranslation = skipTranslation;
+            _skipCampaign = skipCampaign;
+
+            _includeJournal = includeJournal;
+            _includeBlueprint = includeBlueprint;
+            _includeConversation = includeConversation;
         }
 
-        public void ConvertConversation(string root, string[] modules, bool skipCampaign, string missLog, string outputLog)
+        public void ConvertConversation(string root, string[] modules, string missLog, string outputLog)
         {
-            bool didCampaign = skipCampaign; // true to skip campaign
+            bool didCampaign = _skipCampaign; // true to skip campaign
 
             _external_logger.AppendLog("================================");
 
@@ -430,21 +529,39 @@ namespace ConversationTranslator
 
                         didCampaign = true;
 
-                        var campaign_convs = NWN2Toolset.NWN2.Data.Campaign.NWN2CampaignManager.Instance.ActiveCampaign.Conversations;
-                        foreach (string key in campaign_convs.Keys)
+                        if (_includeJournal)
+                            ExportJournal(logger, "Journal-Campaign", NWN2Toolset.NWN2.Data.Campaign.NWN2CampaignManager.Instance.ActiveCampaign.Journal);
+
+                        if(_includeBlueprint)
+                            ExportBlueprintSet(logger, "Blueprint-Campaign", NWN2Toolset.NWN2.Data.Campaign.NWN2CampaignManager.Instance.ActiveCampaign);
+
+                        if (_includeConversation)
                         {
-                            NWN2GameConversation conv = campaign_convs[key];
-                            ExportConv(logger, key, conv);
+                            var campaign_convs = NWN2Toolset.NWN2.Data.Campaign.NWN2CampaignManager.Instance.ActiveCampaign.Conversations;
+                            foreach (string key in campaign_convs.Keys)
+                            {
+                                NWN2GameConversation conv = campaign_convs[key];
+                                ExportConv(logger, key, conv);
+                            }
                         }
 
                         _external_logger.AppendLog(string.Format("Campaign done..."));
                     }
 
-                    var convs = NWN2Toolset.NWN2ToolsetMainForm.App.Module.Conversations;
-                    foreach (string key in convs.Keys)
+                    if (_includeJournal)
+                        ExportJournal(logger, "Journal-" + moduleName, NWN2Toolset.NWN2ToolsetMainForm.App.Module.Journal);
+
+                    if (_includeBlueprint)
+                        ExportBlueprintSet(logger, "Blueprint-" + moduleName, NWN2Toolset.NWN2ToolsetMainForm.App.Module);
+
+                    if (_includeConversation)
                     {
-                        NWN2GameConversation conv = convs[key];
-                        ExportConv(logger, key, conv);
+                        var convs = NWN2Toolset.NWN2ToolsetMainForm.App.Module.Conversations;
+                        foreach (string key in convs.Keys)
+                        {
+                            NWN2GameConversation conv = convs[key];
+                            ExportConv(logger, key, conv);
+                        }
                     }
 
                     _external_logger.AppendLog(string.Format("Module {0} done...", moduleName));
@@ -466,6 +583,103 @@ namespace ConversationTranslator
             }
         }
 
+        private void ExportBlueprintSet(StreamWriter logger, string name, INWN2BlueprintSet set)
+        {
+            ExportBlueprints(logger, "Creatures-" + name, set.Creatures);
+            ExportBlueprints(logger, "Doors-" + name, set.Doors);
+            ExportBlueprints(logger, "Encounters-" + name, set.Encounters);
+            ExportBlueprints(logger, "EnvironmentObjects-" + name, set.EnvironmentObjects);
+            ExportBlueprints(logger, "Items-" + name, set.Items);
+            ExportBlueprints(logger, "Placeables-" + name, set.Placeables);
+            ExportBlueprints(logger, "PlacedEffects-" + name, set.PlacedEffects);
+            ExportBlueprints(logger, "Sounds-" + name, set.Sounds);
+            ExportBlueprints(logger, "StaticCameras-" + name, set.StaticCameras);
+            ExportBlueprints(logger, "Stores-" + name, set.Stores);
+            ExportBlueprints(logger, "Trees-" + name, set.Trees);
+            ExportBlueprints(logger, "Triggers-" + name, set.Triggers);
+            ExportBlueprints(logger, "Waypoints-" + name, set.Waypoints);
+        }
+
+        private void ExportBlueprints(StreamWriter logger, string name, NWN2BlueprintCollection blueprint)
+        {
+            _external_logger.AppendLog(string.Format("Exporting Blueprint {0}...", name));
+
+            StringBuilder sb = new StringBuilder();
+
+            // clear every module's blueprint
+            _indexCounter = 0;
+            _refCounter = 0;
+            _missCounter = 0;
+            _flexibleCounter = 0;
+
+            int capacity = 0;
+            foreach (INWN2Object cat in blueprint)
+            {
+                StoreConv(sb, cat.LocalizedName, name);
+                capacity++;
+                StoreConv(sb, cat.LocalizedDescription, name);
+                capacity++;
+
+                if (!_isReadonly)
+                {
+                    IOEISerializable s = cat as IOEISerializable;
+                    INWN2Blueprint b = cat as INWN2Blueprint;
+                    if (s != null && b != null)
+                    {
+                        s.OEISerialize(b.Resource.GetStream(true));
+                    }
+                }
+            }
+
+            logger.WriteLine(string.Format(@"// Blueprint:{0}", name));
+            string summary = (string.Format("// Ref:{0},Entries:{1},Mismatch:{2},Flex:{3}",
+                                            _refCounter, capacity, _missCounter, _flexibleCounter));
+            logger.WriteLine(summary);
+            logger.Write(sb.ToString());
+
+            _external_logger.AppendLog(summary);
+            _external_logger.AppendLog(string.Format("Journal {0} done.", name));
+        }
+
+        private void ExportJournal(StreamWriter logger, string name, NWN2Journal journal)
+        {
+            _external_logger.AppendLog(string.Format("Exporting journal {0}...", name));
+
+            StringBuilder sb = new StringBuilder();
+
+            // clear every module's journal
+            _indexCounter = 0;
+            _refCounter = 0;
+            _missCounter = 0;
+            _flexibleCounter = 0;
+
+            int capacity = 0;
+            foreach (NWN2JournalCategory cat in journal.Categories)
+            {
+                StoreConv(sb, cat.Name, name);
+                capacity++;
+                foreach (NWN2JournalEntry entry in cat.Entries)
+                {
+                    StoreConv(sb, entry.Text, name);
+                    capacity++;
+                }
+            }
+
+            logger.WriteLine(string.Format(@"// Journal:{0}", name));
+            string summary = (string.Format("// Ref:{0},Entries:{1},Mismatch:{2},Flex:{3}",
+                                            _refCounter, capacity, _missCounter, _flexibleCounter));
+            logger.WriteLine(summary);
+            logger.Write(sb.ToString());
+
+            _external_logger.AppendLog(summary);
+            _external_logger.AppendLog(string.Format("Journal {0} done.", name));
+
+            if (!_isReadonly)
+            {
+                journal.OEISerialize(journal.Resource.GetStream(true));
+            }
+        }
+
         private void ExportConv(StreamWriter logger, string name, NWN2GameConversation conv)
         {
             _external_logger.AppendLog(string.Format("Exporting conv {0}...", name));
@@ -484,12 +698,12 @@ namespace ConversationTranslator
 
             foreach (NWN2ConversationLine line in conv.Entries)
             {
-                StoreConv(sb, line, name);
+                StoreConv(sb, line.Text, name);
             }
 
             foreach (NWN2ConversationLine line in conv.Replies)
             {
-                StoreConv(sb, line, name);
+                StoreConv(sb, line.Text, name);
             }
 
             logger.WriteLine(string.Format(@"// Conversion:{0}", name));
@@ -520,11 +734,11 @@ namespace ConversationTranslator
             _missCounter++;
         }
 
-        private void StoreConv(StringBuilder sb, NWN2ConversationLine line, string name)
+        private void StoreConv(StringBuilder sb, OEIExoLocString Text, string name)
         {
-            _refCounter += line.Text.StringRefValid ? 1 : 0;
+            _refCounter += Text.StringRefValid ? 1 : 0;
 
-            string dialog = line.Text[OEIShared.Utils.BWLanguages.BWLanguage.English];
+            string dialog = Text[OEIShared.Utils.BWLanguages.BWLanguage.English];
             if (dialog.Length == 0 || dialog.Trim().Length == 0)
             {
                 // skip empty quote
@@ -534,39 +748,51 @@ namespace ConversationTranslator
             if (_indexCounter % 100 == 0)
                 _external_logger.AppendLog(string.Format("Trans line {0}...", _indexCounter));
 
-            var result = _matcher.Find(dialog);
-            if (result.index >= 0)
+
+            if (_skipTranslation)
             {
-                if (result.flex > 0)
+                StoreMismatch(dialog, name);
+            }
+            else
+            {
+                var result = _matcher.Find(dialog);
+                if (result.index >= 0)
                 {
-                    if (result.flex > 0.85)
+                    if (result.flex > 0)
                     {
-                        dialog = result.target;
-                        _flexibleCounter++;
-                        if (!_isReadonly)
-                            line.Text[OEIShared.Utils.BWLanguages.BWLanguage.English] = dialog;
+                        if (result.flex > 0.85)
+                        {
+                            dialog = result.target;
+                            _flexibleCounter++;
+                            if (!_isReadonly)
+                                Text[OEIShared.Utils.BWLanguages.BWLanguage.English] = dialog;
+                        }
+                        else
+                        {
+                            StoreMismatch(dialog, name);
+                        }
                     }
                     else
                     {
-                        StoreMismatch(dialog, name);
+                        // normal matching
+                        dialog = result.target;
+                        if (!_isReadonly)
+                            Text[OEIShared.Utils.BWLanguages.BWLanguage.English] = dialog;
                     }
                 }
                 else
                 {
-                    // normal matching
-                    dialog = result.target;
-                    if (!_isReadonly)
-                        line.Text[OEIShared.Utils.BWLanguages.BWLanguage.English] = dialog;
+                    StoreMismatch(dialog, name);
                 }
             }
-            else
-            {
-                StoreMismatch(dialog, name);
-            }
 
-            sb.AppendLine(string.Format("String #{0},{1}, is ~{2}~",
+            // do not record string ref is there is nothing
+            string refIndex = Text.StringRef != 0xFFFFFFFF ?
+                string.Format(",0x{0:X}", Text.StringRef) : "";
+
+            sb.AppendLine(string.Format("String #{0}{1} is ~{2}~",
                           _indexCounter,
-                          line.Text.StringRef,
+                          refIndex,
                           dialog));
 
             _indexCounter++;

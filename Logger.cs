@@ -97,6 +97,12 @@ namespace ConversationTranslator
 
         private void btnStart_Click(object sender, EventArgs e)
         {
+            if(!cbJournal.Checked && !cbBlueprint.Checked && !cbConversation.Checked)
+            {
+                AppendLog("Include something pls...");
+                return;
+            }
+
             List<string> selected = new List<string>();
 
             StringBuilder sb = new StringBuilder();
@@ -122,17 +128,32 @@ namespace ConversationTranslator
                 if (MessageBox.Show(sb.ToString(), "Question", MessageBoxButtons.OKCancel) != DialogResult.OK)
                     return;
 
-                _trans = new Translator(_settings.origin,
-                                              _settings.target,
-                                              this, cbReadonly.Checked);
+                try
+                {
+                    _trans = new Translator(_settings.origin,
+                                        _settings.target,
+                                        this,
+                                        cbReadonly.Checked, 
+                                        cbNoTranslate.Checked,
+                                        cbSkipCamp.Checked,
+                                        cbJournal.Checked,
+                                        cbBlueprint.Checked,
+                                        cbConversation.Checked);
 
-                _trans.ConvertConversation(_settings.root,
-                                           selected.ToArray(),
-                                           cbSkipCamp.Checked,
-                                           _settings.miss,
-                                           _settings.output);
+                    _trans.ConvertConversation(_settings.root,
+                                               selected.ToArray(),
+                                               _settings.miss,
+                                               _settings.output);
 
-                MessageBox.Show("Finished!");
+                    MessageBox.Show("Finished!");
+                }
+                catch (System.Exception ex)
+                {
+                    AppendLog(ex.Message);
+                    AppendLog(ex.StackTrace);
+
+                    MessageBox.Show("Got an error!");
+                }
             }
             else
             {
