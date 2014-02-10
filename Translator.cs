@@ -18,18 +18,26 @@ namespace ConversationTranslator
     #region String Matching
     public class LevenshteinDistance
     {
-        static private int LowerOfThree(int first, int second, int third)
+        private int LowerOfThree(int first, int second, int third)
         {
             int min = Math.Min(first, second);
             return Math.Min(min, third);
         }
 
-        static public int step = 0;
-        static public int Calc(string str1, string str2, int early)
-        {
-            step = 0;
+        int[] Matrix;
 
-            int[,] Matrix;
+        int GetMatrix(int x, int y, int stride)
+        {
+            return Matrix[x + y * stride];
+        }
+
+        void SetMatrix(int x, int y, int stride, int value)
+        {
+            Matrix[x + y * stride] = value;
+        }
+
+        public int Calc(string str1, string str2, int early)
+        {
             int n = str1.Length;
             int m = str2.Length;
 
@@ -47,18 +55,25 @@ namespace ConversationTranslator
 
                 return n;
             }
-            Matrix = new int[n + 1, m + 1];
+
+            // do not alloc every time
+            int stride = n + 1;
+            int height = m + 1;
+            if (Matrix == null || Matrix.Length < stride * height)
+            {
+                Matrix = new int[stride * height];
+            }
 
             for (i = 0; i <= n; i++)
             {
                 //初始化第一列
-                Matrix[i, 0] = i;
+                SetMatrix(i, 0, stride, i);
             }
 
             for (j = 0; j <= m; j++)
             {
                 //初始化第一行
-                Matrix[0, j] = j;
+                SetMatrix(0, j, stride, j);
             }
 
             for (i = 1; i <= n; i++)
@@ -75,13 +90,14 @@ namespace ConversationTranslator
                     {
                         temp = 1;
                     }
-                    int current = LowerOfThree(Matrix[i - 1, j] + 1, Matrix[i, j - 1] + 1, Matrix[i - 1, j - 1] + temp);
+                    int current = LowerOfThree(GetMatrix(i - 1, j, stride) + 1,
+                                               GetMatrix(i, j - 1, stride) + 1,
+                                               GetMatrix(i - 1, j - 1, stride) + temp);
                     //if (current > early)
                     //{
                     //    return int.MaxValue;
                     //}
-                    Matrix[i, j] = current;
-                    step++;
+                    SetMatrix(i, j, stride, current);
                 }
             }
 
@@ -94,10 +110,10 @@ namespace ConversationTranslator
             //    Console.WriteLine("");
             //}
 
-            return Matrix[n, m];
+            return GetMatrix(n, m, stride);
         }
 
-        static public decimal CalcPercent(string str1, string str2, int val)
+        public decimal CalcPercent(string str1, string str2, int val)
         {
             //int maxLenth = str1.Length > str2.Length ? str1.Length : str2.Length;
             return 1 - (decimal)val / Math.Max(str1.Length, str2.Length);
@@ -174,6 +190,11 @@ namespace ConversationTranslator
                         {
                             full = new StringBuilder();
                             content = line.Substring(line.IndexOf('~') + 1);
+                        }
+                        else
+                        {
+                            // add the line break for previous line
+                            full.AppendLine("");
                         }
                         full.Append(content);
                     }
@@ -367,6 +388,7 @@ namespace ConversationTranslator
             List<StringMatchResult> results = new List<StringMatchResult>();
             List<ManualResetEvent> doneEvents = new List<ManualResetEvent>();
 
+
             while (indexBegin <= indexEnd)
             {
                 int currentBegin = indexBegin;
@@ -390,25 +412,54 @@ namespace ConversationTranslator
                 indexBegin = currentEnd + 1;
             }
 
+            // failed directly
+            if (doneEvents.Count == 0)
+            {
+                return new StringMatchResult();
+            }
+
             foreach (ManualResetEvent doneEvent in doneEvents)
             {
                 doneEvent.WaitOne();
             }
             //WaitHandle.WaitAll(doneEvents.ToArray());
-            
+
             results.Sort(new StringMatchResult.Camparer());
 
             return results[results.Count - 1];
         }
 
+        // Reuse the calculator to avoid out-of-memory
+        static Stack<LevenshteinDistance> calculators = new Stack<LevenshteinDistance>();
+        static private LevenshteinDistance PopCalculator()
+        {
+            lock (calculators)
+            {
+                if (calculators.Count == 0)
+                {
+                    return new LevenshteinDistance();
+                }
+                return calculators.Pop();
+            }
+        }
+        static private void PushCalculator(LevenshteinDistance used)
+        {
+            lock (calculators)
+            {
+                calculators.Push(used);
+            }
+        }
+
         private void SearchFlexibleWorker(string escaped, StringMatchResult r, int distanceEnd, int indexBegin, int indexEnd)
         {
+            LevenshteinDistance distance = PopCalculator();
+
             string found = null;
             int minDistance = distanceEnd;
-            for (int i = indexBegin; i <= indexEnd; i++)
+            for (int i = indexEnd; i >= indexBegin; i--)
             {
                 string current = _sorted[i];
-                int dis = LevenshteinDistance.Calc(escaped, current, minDistance);
+                int dis = distance.Calc(escaped, current, minDistance);
                 if (dis < minDistance)
                 {
                     found = current;
@@ -421,13 +472,15 @@ namespace ConversationTranslator
                 int index = _escaped[found];
                 if (_target.ContainsKey(index))
                 {
-                    r.flex = (double)LevenshteinDistance.CalcPercent(found, escaped, minDistance);
+                    r.flex = (double)distance.CalcPercent(found, escaped, minDistance);
                     r.index = index;
                     r.target = _target[index];
                     r.origin = _origin[index];
                     r.pattern = escaped;
                 }
             }
+
+            PushCalculator(distance);
         }
 
         private bool SearchFromDict(Dictionary<string, int> dic, string pattern, StringMatchResult r)
