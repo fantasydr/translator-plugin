@@ -16,12 +16,19 @@ using System.Threading;
 namespace ConversationTranslator
 {
     #region String Matching
+    // based on http://www.cnblogs.com/ivanyb/archive/2011/11/25/2263356.html
     public class LevenshteinDistance
     {
-        private int LowerOfThree(int first, int second, int third)
+        static private int LowerOfThree(int first, int second, int third)
         {
             int min = Math.Min(first, second);
             return Math.Min(min, third);
+        }
+
+        static public decimal CalcPercent(string str1, string str2, int val)
+        {
+            var ret = 1 - (decimal)val / Math.Max(str1.Length, str2.Length);
+            return ret < 0 ? 0 : ret;
         }
 
         int[] Matrix;
@@ -41,20 +48,11 @@ namespace ConversationTranslator
             int n = str1.Length;
             int m = str2.Length;
 
-            int temp = 0;
-            char ch1;
-            char ch2;
-            int i = 0;
-            int j = 0;
             if (n == 0)
-            {
                 return m;
-            }
-            if (m == 0)
-            {
 
+            if (m == 0)
                 return n;
-            }
 
             // do not alloc every time
             int stride = n + 1;
@@ -64,43 +62,85 @@ namespace ConversationTranslator
                 Matrix = new int[stride * height];
             }
 
-            for (i = 0; i <= n; i++)
+            for (int i = 0; i <= n; i++)
             {
-                //初始化第一列
                 SetMatrix(i, 0, stride, i);
             }
 
-            for (j = 0; j <= m; j++)
+            for (int j = 0; j <= m; j++)
             {
-                //初始化第一行
                 SetMatrix(0, j, stride, j);
             }
 
-            for (i = 1; i <= n; i++)
+            // exit if current match could not be better
+            int minLen = Math.Min(m, n);
+            for (int start = 1; start <= minLen; start++)
             {
-                ch1 = str1[i - 1];
-                for (j = 1; j <= m; j++)
+                int min = int.MaxValue;
+
+                for (int i = start; i <= n; i++)
                 {
-                    ch2 = str2[j - 1];
-                    if (ch1.Equals(ch2))
+                    char ch1 = str1[i - 1];
+                    int j = start;
+                    if (j <= m)
                     {
-                        temp = 0;
+                        char ch2 = str2[j - 1];
+                        int delta = ch1.Equals(ch2) ? 0 : 1;
+                        int current = LowerOfThree(GetMatrix(i - 1, j, stride) + 1,
+                                                   GetMatrix(i, j - 1, stride) + 1,
+                                                   GetMatrix(i - 1, j - 1, stride) + delta);
+
+                        if (min > current)
+                            min = current;
+
+                        SetMatrix(i, j, stride, current);
                     }
-                    else
+                }
+
+                for (int j = start + 1; j <= m; j++)
+                {
+                    char ch2 = str2[j - 1];
+
+                    int i = start;
+                    if (i <= n)
                     {
-                        temp = 1;
+                        char ch1 = str1[i - 1];
+                        {
+                            int delta = ch1.Equals(ch2) ? 0 : 1;
+                            int current = LowerOfThree(GetMatrix(i - 1, j, stride) + 1,
+                                                       GetMatrix(i, j - 1, stride) + 1,
+                                                       GetMatrix(i - 1, j - 1, stride) + delta);
+
+                            if (min > current)
+                                min = current;
+
+                            SetMatrix(i, j, stride, current);
+                        }
                     }
-                    int current = LowerOfThree(GetMatrix(i - 1, j, stride) + 1,
-                                               GetMatrix(i, j - 1, stride) + 1,
-                                               GetMatrix(i - 1, j - 1, stride) + temp);
-                    //if (current > early)
-                    //{
-                    //    return int.MaxValue;
-                    //}
-                    SetMatrix(i, j, stride, current);
+                }
+
+                if (min >= early)
+                {
+                    return int.MaxValue;
                 }
             }
 
+            // iterate all values
+            //for (int i = 1; i <= n; i++)
+            //{
+            //    char ch1 = str1[i - 1];
+            //    for (int j = 1; j <= m; j++)
+            //    {
+            //        char ch2 = str2[j - 1];
+            //        int delta = ch1.Equals(ch2) ? 0 : 1;
+            //        int current = LowerOfThree(GetMatrix(i - 1, j, stride) + 1,
+            //                                   GetMatrix(i, j - 1, stride) + 1,
+            //                                   GetMatrix(i - 1, j - 1, stride) + delta);
+            //        SetMatrix(i, j, stride, current);
+            //    }
+            //}
+
+            // debug output
             //for (i = 0; i <= n; i++)
             //{
             //    for (j = 0; j <= m; j++)
@@ -111,12 +151,6 @@ namespace ConversationTranslator
             //}
 
             return GetMatrix(n, m, stride);
-        }
-
-        public decimal CalcPercent(string str1, string str2, int val)
-        {
-            //int maxLenth = str1.Length > str2.Length ? str1.Length : str2.Length;
-            return 1 - (decimal)val / Math.Max(str1.Length, str2.Length);
         }
     }
 
@@ -465,6 +499,9 @@ namespace ConversationTranslator
                     found = current;
                     minDistance = dis;
                 }
+
+                if (minDistance == 0 && found != null)
+                    break;
             }
 
             if (found != null)
@@ -472,7 +509,7 @@ namespace ConversationTranslator
                 int index = _escaped[found];
                 if (_target.ContainsKey(index))
                 {
-                    r.flex = (double)distance.CalcPercent(found, escaped, minDistance);
+                    r.flex = (double)LevenshteinDistance.CalcPercent(found, escaped, minDistance);
                     r.index = index;
                     r.target = _target[index];
                     r.origin = _origin[index];
