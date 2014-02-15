@@ -29,6 +29,7 @@ namespace ConversationTranslator
             newSetting.root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"Neverwinter Nights 2\modules\");
             newSetting.miss = @"C:\miss.log";
             newSetting.output = @"C:\output.log";
+            newSetting.export = @"C:\export.log";
 
             newSetting.modules = new string[]{
                                 "Module1",
@@ -57,9 +58,9 @@ namespace ConversationTranslator
                 _settings = DefaultSettings();
             }
 
-            AppendLog(string.Format("Setting loaded:\r\n    Origin:{0}\r\n    Target:{1}\r\n    Miss:{2}\r\n    Output:{3}\r\n    Root:{4}\r\n", 
+            AppendLog(string.Format("Setting loaded:\r\n    Origin:{0}\r\n    Target:{1}\r\n    Miss:{2}\r\n    Output:{3}\r\n    Export:{4}\r\n    Root:{5}\r\n", 
                                                            _settings.origin, _settings.target,
-                                                           _settings.miss, _settings.output,
+                                                           _settings.miss, _settings.output, _settings.export,
                                                            _settings.root));
 
             lstMods.Items.Clear();
@@ -143,7 +144,8 @@ namespace ConversationTranslator
                     _trans.ConvertConversation(_settings.root,
                                                selected.ToArray(),
                                                _settings.miss,
-                                               _settings.output);
+                                               _settings.output,
+                                               _settings.export);
 
                     MessageBox.Show("Finished!");
                 }
@@ -206,5 +208,6 @@ namespace ConversationTranslator
 
         public string miss; // missing record
         public string output; // output log
+        public string export; // export to custom dlg
     }
 }

@@ -549,10 +549,16 @@ namespace ConversationTranslator
         ILogger _external_logger;
 
         // to export the final result
+        Dictionary<int, string> _custom = new Dictionary<int, string>();
+        Dictionary<string, int> _customRev = new Dictionary<string, int>();
+
         Dictionary<string, string> _misMatched = new Dictionary<string, string>();
         List<string> _misMatchedSorted = new List<string>();
 
         // clear every module
+        uint _customBase = 0x1000000;
+        uint _customCounter = 1;
+
         int _indexCounter = 0;
         int _refCounter = 0;
         int _missCounter = 0;
@@ -581,7 +587,7 @@ namespace ConversationTranslator
             _includeConversation = includeConversation;
         }
 
-        public void ConvertConversation(string root, string[] modules, string missLog, string outputLog)
+        public void ConvertConversation(string root, string[] modules, string missLog, string outputLog, string customLog)
         {
             bool didCampaign = _skipCampaign; // true to skip campaign
 
@@ -591,13 +597,31 @@ namespace ConversationTranslator
             if (File.Exists(missLog))
             {
                 var previous = StringMatcher.LoadFullText(missLog, false); // keep token such as [TOKEN]
-                _external_logger.AppendLog(string.Format("Loading previous {0}...", previous.Count));
+                _external_logger.AppendLog(string.Format("Loading existing miss log {0}...", previous.Count));
                 foreach (var kv in previous) // 
                 {
                     StoreMismatch(kv.Value, "previous");
                 }
             }
 
+            // load pre exported custom logs
+            if (File.Exists(customLog))
+            {
+                _custom = StringMatcher.LoadFullText(customLog, false);
+                _external_logger.AppendLog(string.Format("Loading existing export log {0}...", _custom.Count));
+                _customRev = new Dictionary<string, int>();
+                foreach (var kv in _custom)
+                {
+                    if (!_customRev.ContainsKey(kv.Value))
+                        _customRev.Add(kv.Value, kv.Key);
+
+                    if (_customCounter < kv.Key)
+                        _customCounter = (uint)kv.Key;
+                }
+                _customCounter++;
+            }
+
+            uint moduleCount = 1;
             using (StreamWriter logger = new StreamWriter(outputLog))
             {
                 foreach (string moduleName in modules)
@@ -616,61 +640,75 @@ namespace ConversationTranslator
                     if (!didCampaign)
                     {
                         _external_logger.AppendLog(string.Format("Loading campaign ..."));
-
                         didCampaign = true;
-
-                        if (_includeJournal)
-                            ExportJournal(logger, "Journal-Campaign", NWN2Toolset.NWN2.Data.Campaign.NWN2CampaignManager.Instance.ActiveCampaign.Journal);
-
-                        if(_includeBlueprint)
-                            ExportBlueprintSet(logger, "Blueprint-Campaign", NWN2Toolset.NWN2.Data.Campaign.NWN2CampaignManager.Instance.ActiveCampaign);
-
-                        if (_includeConversation)
-                        {
-                            var campaign_convs = NWN2Toolset.NWN2.Data.Campaign.NWN2CampaignManager.Instance.ActiveCampaign.Conversations;
-                            foreach (string key in campaign_convs.Keys)
-                            {
-                                NWN2GameConversation conv = campaign_convs[key];
-                                ExportConv(logger, key, conv);
-                            }
-                        }
-
+                        LoadCampaign(logger);
                         _external_logger.AppendLog(string.Format("Campaign done..."));
                     }
 
-                    if (_includeJournal)
-                        ExportJournal(logger, "Journal-" + moduleName, NWN2Toolset.NWN2ToolsetMainForm.App.Module.Journal);
-
-                    if (_includeBlueprint)
-                        ExportBlueprintSet(logger, "Blueprint-" + moduleName, NWN2Toolset.NWN2ToolsetMainForm.App.Module);
-
-                    if (_includeConversation)
-                    {
-                        var convs = NWN2Toolset.NWN2ToolsetMainForm.App.Module.Conversations;
-                        foreach (string key in convs.Keys)
-                        {
-                            NWN2GameConversation conv = convs[key];
-                            ExportConv(logger, key, conv);
-                        }
-                    }
-
+                    LoadModule(moduleCount, moduleName, logger);
                     _external_logger.AppendLog(string.Format("Module {0} done...", moduleName));
 
                     NWN2Toolset.NWN2ToolsetMainForm.App.Module.CloseModule();
                     logger.Flush();
 
                     // update this after every module in case we crash... :(
-                    using (StreamWriter miss = new StreamWriter(missLog))
+                    if (_misMatched.Count > 0)
                     {
-                        miss.WriteLine(string.Format(@"// Total:{0}", _misMatched.Count));
-                        int i = 0x2000000;
-                        foreach (var dialog in _misMatchedSorted)
+                        using (StreamWriter miss = new StreamWriter(missLog))
                         {
-                            miss.WriteLine(string.Format("String #{0} is ~{1}~", i++, dialog));
+                            miss.WriteLine(string.Format(@"// Total:{0}", _misMatched.Count));
+                            int i = 0x2000000;
+                            foreach (var dialog in _misMatchedSorted)
+                            {
+                                miss.WriteLine(string.Format("String #{0} is ~{1}~", i++, dialog));
+                            }
                         }
                     }
+
+                    if (_custom.Count > 0)
+                        StringMatcher.SaveFullText(customLog, _custom);
+
+                    moduleCount++;
                 }
             }
+        }
+
+        private void LoadModule(uint moduleIndex, string moduleName, StreamWriter logger)
+        {
+            if (_includeConversation)
+            {
+                var convs = NWN2Toolset.NWN2ToolsetMainForm.App.Module.Conversations;
+                foreach (string key in convs.Keys)
+                {
+                    NWN2GameConversation conv = convs[key];
+                    ExportConv(logger, key, conv);
+                }
+            }
+
+            if (_includeJournal)
+                ExportJournal(logger, "Journal-" + moduleName, NWN2Toolset.NWN2ToolsetMainForm.App.Module.Journal);
+
+            if (_includeBlueprint)
+                ExportBlueprintSet(logger, "Blueprint-" + moduleName, NWN2Toolset.NWN2ToolsetMainForm.App.Module);
+        }
+
+        private void LoadCampaign(StreamWriter logger)
+        {
+            if (_includeConversation)
+            {
+                var campaign_convs = NWN2Toolset.NWN2.Data.Campaign.NWN2CampaignManager.Instance.ActiveCampaign.Conversations;
+                foreach (string key in campaign_convs.Keys)
+                {
+                    NWN2GameConversation conv = campaign_convs[key];
+                    ExportConv(logger, key, conv);
+                }
+            }
+
+            if (_includeJournal)
+                ExportJournal(logger, "Journal-Campaign", NWN2Toolset.NWN2.Data.Campaign.NWN2CampaignManager.Instance.ActiveCampaign.Journal);
+
+            if (_includeBlueprint)
+                ExportBlueprintSet(logger, "Blueprint-Campaign", NWN2Toolset.NWN2.Data.Campaign.NWN2CampaignManager.Instance.ActiveCampaign);
         }
 
         private void ExportBlueprintSet(StreamWriter logger, string name, INWN2BlueprintSet set)
@@ -841,7 +879,25 @@ namespace ConversationTranslator
 
             if (_skipTranslation)
             {
-                StoreMismatch(dialog, name);
+                if (!Text.StringRefValid || Text.StringRef > _customBase)
+                {
+                    int refIndex = 0;
+                    if (_customRev.TryGetValue(dialog, out refIndex))
+                    {
+                        Text.StringRef = (uint)(refIndex + _customBase);
+                    }
+                    else
+                    {
+                        refIndex = (int)_customCounter;
+                        Text.StringRef = (uint)(refIndex + _customBase);
+                        // stored into different hash map
+                        _custom[refIndex] = dialog;
+                        _customRev[dialog] = refIndex;
+                    }
+                    // make sure we do not have embed string
+                    Text.Strings.Clear();
+                    _customCounter++;
+                }
             }
             else
             {
@@ -877,13 +933,10 @@ namespace ConversationTranslator
             }
 
             // do not record string ref is there is nothing
-            string refIndex = Text.StringRef != 0xFFFFFFFF ?
+            string refTag = Text.StringRef != 0xFFFFFFFF ?
                 string.Format(",0x{0:X}", Text.StringRef) : "";
 
-            sb.AppendLine(string.Format("String #{0}{1} is ~{2}~",
-                          _indexCounter,
-                          refIndex,
-                          dialog));
+            sb.AppendLine(string.Format("String #{0}{1} is ~{2}~", _indexCounter, refTag, dialog));
 
             _indexCounter++;
         }
