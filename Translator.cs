@@ -190,7 +190,7 @@ namespace ConversationTranslator
 
             Regex token = new Regex(@"\[[\w\s]+\]");
 
-            char[] trims = { '~', ' ' };
+            char[] trims = { '~', ' ', '\r', '\n' };
 
             Dictionary<int, string> strings = new Dictionary<int, string>();
             int reading = -1;
@@ -207,7 +207,7 @@ namespace ConversationTranslator
                         if (reading >= 0 && full != null)
                         {
                             string output = full.ToString();
-                            if (removeToken)
+                            if(removeToken)
                                 output = token.Replace(full.ToString(), "");
 
                             strings.Add(reading, output.TrimEnd(trims));
@@ -237,7 +237,11 @@ namespace ConversationTranslator
 
             if (reading >= 0 && full != null)
             {
-                strings.Add(reading, full.ToString());
+                string output = full.ToString();
+                if (removeToken)
+                    output = token.Replace(full.ToString(), "");
+                strings.Add(reading, output.TrimEnd(trims));
+
                 full = null;
             }
 
@@ -460,7 +464,7 @@ namespace ConversationTranslator
 
             results.Sort(new StringMatchResult.Camparer());
 
-            return results[results.Count - 1];
+            return results[results.Count-1];
         }
 
         // Reuse the calculator to avoid out-of-memory
@@ -500,7 +504,7 @@ namespace ConversationTranslator
                     minDistance = dis;
                 }
 
-                if (minDistance == 0 && found != null)
+                if(minDistance == 0 && found != null)
                     break;
             }
 
