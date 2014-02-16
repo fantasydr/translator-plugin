@@ -546,58 +546,81 @@ namespace ConversationTranslator
     class Translator
     {
         StringMatcher _matcher;
-        ILogger _external_logger;
+        ILogger _loggerExternal;
 
-        // to export the final result
-        Dictionary<int, string> _custom = new Dictionary<int, string>();
-        Dictionary<string, int> _customRev = new Dictionary<string, int>();
-
+        // the string which is not translated by origin/target text
         Dictionary<string, string> _misMatched = new Dictionary<string, string>();
         List<string> _misMatchedSorted = new List<string>();
 
-        // clear every module
+        // index for custom TLK
         uint _customBase = 0x1000000;
         uint _customCounter = 1;
 
-        int _indexCounter = 0;
-        int _refCounter = 0;
-        int _missCounter = 0;
-        int _flexibleCounter = 0;
+        // store the custom TLK
+        Dictionary<int, string> _custom = new Dictionary<int, string>();
+        Dictionary<string, int> _customRev = new Dictionary<string, int>();
 
-        bool _isReadonly = false;
-        bool _skipTranslation = false;
+        // flags for the process
+        bool _isReadonly = true;
         bool _skipCampaign = false;
 
         bool _includeJournal = false;
         bool _includeBlueprint = false;
         bool _includeConversation = false;
 
+        // clear every module
+        int _indexCounter = 0;
+        int _refCounter = 0;
+        int _missCounter = 0;
+        int _flexibleCounter = 0;
+
         public Translator(string origin, string target, ILogger logger, bool isReadonly,
                           bool skipTranslation, bool skipCampaign, 
                           bool includeJournal, bool includeBlueprint, bool includeConversation)
         {
-            _external_logger = logger;
-            _matcher = new StringMatcher(origin, target);
+            _loggerExternal = logger;
             _isReadonly = isReadonly;
-            _skipTranslation = skipTranslation;
             _skipCampaign = skipCampaign;
 
             _includeJournal = includeJournal;
             _includeBlueprint = includeBlueprint;
             _includeConversation = includeConversation;
+
+            // do not enable translation if origin/target files is not there
+            try
+            {
+                _matcher = skipTranslation ? null : new StringMatcher(origin, target);
+            }
+            catch (System.Exception ex)
+            {
+                _loggerExternal.AppendLog("Cannot create StringMatcher because of:\n" + ex.Message);
+                _matcher = null;
+                _loggerExternal.AppendLog("Skip translation...");
+            }
+        }
+
+        private void StoreMismatch(string dialog, string name)
+        {
+            if (!_misMatched.ContainsKey(dialog))
+            {
+                _misMatched.Add(dialog, name);
+                _misMatchedSorted.Add(dialog);
+            }
+
+            _missCounter++;
         }
 
         public void ConvertConversation(string root, string[] modules, string missLog, string outputLog, string customLog)
         {
-            bool didCampaign = _skipCampaign; // true to skip campaign
+            bool campaignDone = _skipCampaign; // true to skip campaign
 
-            _external_logger.AppendLog("================================");
+            _loggerExternal.AppendLog("================================");
 
             // store the previous miss log
             if (File.Exists(missLog))
             {
                 var previous = StringMatcher.LoadFullText(missLog, false); // keep token such as [TOKEN]
-                _external_logger.AppendLog(string.Format("Loading existing miss log {0}...", previous.Count));
+                _loggerExternal.AppendLog(string.Format("Loading existing miss logs, we got {0}...", previous.Count));
                 foreach (var kv in previous) // 
                 {
                     StoreMismatch(kv.Value, "previous");
@@ -608,7 +631,7 @@ namespace ConversationTranslator
             if (File.Exists(customLog))
             {
                 _custom = StringMatcher.LoadFullText(customLog, false);
-                _external_logger.AppendLog(string.Format("Loading existing export log {0}...", _custom.Count));
+                _loggerExternal.AppendLog(string.Format("Loading existing custom tlks, we got {0}...", _custom.Count));
                 _customRev = new Dictionary<string, int>();
                 foreach (var kv in _custom)
                 {
@@ -626,7 +649,7 @@ namespace ConversationTranslator
             {
                 foreach (string moduleName in modules)
                 {
-                    _external_logger.AppendLog(string.Format("Loading module {0}...", moduleName));
+                    _loggerExternal.AppendLog(string.Format("Loading module {0}...", moduleName));
 
                     if (moduleName.Contains(".mod"))
                     {
@@ -637,21 +660,22 @@ namespace ConversationTranslator
                         NWN2Toolset.NWN2ToolsetMainForm.App.Module.OpenModuleDirectory(root + moduleName);
                     }
 
-                    if (!didCampaign)
+                    // Only handle campaign at the 1st time, all modules should belongs to same campaign
+                    if (!campaignDone)
                     {
-                        _external_logger.AppendLog(string.Format("Loading campaign ..."));
-                        didCampaign = true;
-                        LoadCampaign(logger);
-                        _external_logger.AppendLog(string.Format("Campaign done..."));
+                        _loggerExternal.AppendLog(string.Format("Loading campaign ..."));
+                        campaignDone = true;
+                        ExportCampaign(logger);
+                        _loggerExternal.AppendLog(string.Format("Campaign done..."));
                     }
 
-                    LoadModule(moduleCount, moduleName, logger);
-                    _external_logger.AppendLog(string.Format("Module {0} done...", moduleName));
+                    ExportModule(moduleCount, moduleName, logger);
+                    _loggerExternal.AppendLog(string.Format("Module {0} done...", moduleName));
 
                     NWN2Toolset.NWN2ToolsetMainForm.App.Module.CloseModule();
                     logger.Flush();
 
-                    // update this after every module in case we crash... :(
+                    // update this after every module exported, in case we got crash... :(
                     if (_misMatched.Count > 0)
                     {
                         using (StreamWriter miss = new StreamWriter(missLog))
@@ -665,6 +689,7 @@ namespace ConversationTranslator
                         }
                     }
 
+                    // same thing to the custom tlk
                     if (_custom.Count > 0)
                         StringMatcher.SaveFullText(customLog, _custom);
 
@@ -673,7 +698,7 @@ namespace ConversationTranslator
             }
         }
 
-        private void LoadModule(uint moduleIndex, string moduleName, StreamWriter logger)
+        private void ExportModule(uint moduleIndex, string moduleName, StreamWriter logger)
         {
             if (_includeConversation)
             {
@@ -692,7 +717,7 @@ namespace ConversationTranslator
                 ExportBlueprintSet(logger, "Blueprint-" + moduleName, NWN2Toolset.NWN2ToolsetMainForm.App.Module);
         }
 
-        private void LoadCampaign(StreamWriter logger)
+        private void ExportCampaign(StreamWriter logger)
         {
             if (_includeConversation)
             {
@@ -730,9 +755,9 @@ namespace ConversationTranslator
 
         private void ExportBlueprints(StreamWriter logger, string name, NWN2BlueprintCollection blueprint)
         {
-            _external_logger.AppendLog(string.Format("Exporting Blueprint {0}...", name));
+            _loggerExternal.AppendLog(string.Format("Exporting Blueprint {0}...", name));
 
-            StringBuilder sb = new StringBuilder();
+            StringBuilder logger_buffer = new StringBuilder();
 
             // clear every module's blueprint
             _indexCounter = 0;
@@ -743,9 +768,9 @@ namespace ConversationTranslator
             int capacity = 0;
             foreach (INWN2Object cat in blueprint)
             {
-                StoreConv(sb, cat.LocalizedName, name);
+                StoreConv(logger_buffer, cat.LocalizedName, name);
                 capacity++;
-                StoreConv(sb, cat.LocalizedDescription, name);
+                StoreConv(logger_buffer, cat.LocalizedDescription, name);
                 capacity++;
 
                 if (!_isReadonly)
@@ -763,17 +788,17 @@ namespace ConversationTranslator
             string summary = (string.Format("// Ref:{0},Entries:{1},Mismatch:{2},Flex:{3}",
                                             _refCounter, capacity, _missCounter, _flexibleCounter));
             logger.WriteLine(summary);
-            logger.Write(sb.ToString());
+            logger.Write(logger_buffer.ToString());
 
-            _external_logger.AppendLog(summary);
-            _external_logger.AppendLog(string.Format("Journal {0} done.", name));
+            _loggerExternal.AppendLog(summary);
+            _loggerExternal.AppendLog(string.Format("Journal {0} done.", name));
         }
 
         private void ExportJournal(StreamWriter logger, string name, NWN2Journal journal)
         {
-            _external_logger.AppendLog(string.Format("Exporting journal {0}...", name));
+            _loggerExternal.AppendLog(string.Format("Exporting journal {0}...", name));
 
-            StringBuilder sb = new StringBuilder();
+            StringBuilder logger_buffer = new StringBuilder();
 
             // clear every module's journal
             _indexCounter = 0;
@@ -784,11 +809,11 @@ namespace ConversationTranslator
             int capacity = 0;
             foreach (NWN2JournalCategory cat in journal.Categories)
             {
-                StoreConv(sb, cat.Name, name);
+                StoreConv(logger_buffer, cat.Name, name);
                 capacity++;
                 foreach (NWN2JournalEntry entry in cat.Entries)
                 {
-                    StoreConv(sb, entry.Text, name);
+                    StoreConv(logger_buffer, entry.Text, name);
                     capacity++;
                 }
             }
@@ -797,10 +822,10 @@ namespace ConversationTranslator
             string summary = (string.Format("// Ref:{0},Entries:{1},Mismatch:{2},Flex:{3}",
                                             _refCounter, capacity, _missCounter, _flexibleCounter));
             logger.WriteLine(summary);
-            logger.Write(sb.ToString());
+            logger.Write(logger_buffer.ToString());
 
-            _external_logger.AppendLog(summary);
-            _external_logger.AppendLog(string.Format("Journal {0} done.", name));
+            _loggerExternal.AppendLog(summary);
+            _loggerExternal.AppendLog(string.Format("Journal {0} done.", name));
 
             if (!_isReadonly)
             {
@@ -810,14 +835,14 @@ namespace ConversationTranslator
 
         private void ExportConv(StreamWriter logger, string name, NWN2GameConversation conv)
         {
-            _external_logger.AppendLog(string.Format("Exporting conv {0}...", name));
+            _loggerExternal.AppendLog(string.Format("Exporting conv {0}...", name));
 
             _indexCounter = 0;
             _refCounter = 0;
             _missCounter = 0;
             _flexibleCounter = 0;
 
-            StringBuilder sb = new StringBuilder();
+            StringBuilder logger_buffer = new StringBuilder();
 
             if (!conv.Loaded)
             {
@@ -826,22 +851,22 @@ namespace ConversationTranslator
 
             foreach (NWN2ConversationLine line in conv.Entries)
             {
-                StoreConv(sb, line.Text, name);
+                StoreConv(logger_buffer, line.Text, name);
             }
 
             foreach (NWN2ConversationLine line in conv.Replies)
             {
-                StoreConv(sb, line.Text, name);
+                StoreConv(logger_buffer, line.Text, name);
             }
 
             logger.WriteLine(string.Format(@"// Conversion:{0}", name));
             string summary = (string.Format("// Ref:{0},Loaded:{1},Entries:{2},Replies:{3},Mismatch:{4},Flex:{5}",
                                             _refCounter, conv.Loaded, conv.Entries.Capacity, conv.Replies.Capacity, _missCounter, _flexibleCounter));
             logger.WriteLine(summary);
-            logger.Write(sb.ToString());
+            logger.Write(logger_buffer.ToString());
 
-            _external_logger.AppendLog(summary);
-            _external_logger.AppendLog(string.Format("Conv {0} done.", name));
+            _loggerExternal.AppendLog(summary);
+            _loggerExternal.AppendLog(string.Format("Conv {0} done.", name));
 
             if (!_isReadonly)
             {
@@ -851,18 +876,7 @@ namespace ConversationTranslator
             }
         }
 
-        void StoreMismatch(string dialog, string name)
-        {
-            if(!_misMatched.ContainsKey(dialog))
-            {
-                _misMatched.Add(dialog, name);
-                _misMatchedSorted.Add(dialog);
-            }
-
-            _missCounter++;
-        }
-
-        private void StoreConv(StringBuilder sb, OEIExoLocString Text, string name)
+        private void StoreConv(StringBuilder logger_buffer, OEIExoLocString Text, string name)
         {
             _refCounter += Text.StringRefValid ? 1 : 0;
 
@@ -874,12 +888,12 @@ namespace ConversationTranslator
             }
 
             if (_indexCounter % 100 == 0)
-                _external_logger.AppendLog(string.Format("Trans line {0}...", _indexCounter));
+                _loggerExternal.AppendLog(string.Format("Trans line {0}...(shown every 100 lines)", _indexCounter + 1));
 
-
-            if (_skipTranslation)
+            // whether we skip translation
+            if (_matcher == null)
             {
-                if (!Text.StringRefValid || Text.StringRef > _customBase)
+                if (Text.Strings.Count > 0) // have embedded string
                 {
                     int refIndex = 0;
                     if (_customRev.TryGetValue(dialog, out refIndex))
@@ -906,6 +920,7 @@ namespace ConversationTranslator
                 {
                     if (result.flex > 0)
                     {
+                        // flexible matching, not 100% accurate
                         if (result.flex > 0.85)
                         {
                             dialog = result.target;
@@ -936,7 +951,7 @@ namespace ConversationTranslator
             string refTag = Text.StringRef != 0xFFFFFFFF ?
                 string.Format(",0x{0:X}", Text.StringRef) : "";
 
-            sb.AppendLine(string.Format("String #{0}{1} is ~{2}~", _indexCounter, refTag, dialog));
+            logger_buffer.AppendLine(string.Format("String #{0}{1} is ~{2}~", _indexCounter, refTag, dialog));
 
             _indexCounter++;
         }

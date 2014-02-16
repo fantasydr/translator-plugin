@@ -12,7 +12,6 @@ namespace ConversationTranslator
 {
     public partial class Logger : Form, ILogger
     {
-        Translator _trans;
         public Logger()
         {
             InitializeComponent();
@@ -27,9 +26,9 @@ namespace ConversationTranslator
             newSetting.origin = @"C:\origin.txt";
             newSetting.target = @"C:\target.txt";
             newSetting.root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"Neverwinter Nights 2\modules\");
-            newSetting.miss = @"C:\miss.log";
-            newSetting.output = @"C:\output.log";
-            newSetting.export = @"C:\export.log";
+            newSetting.miss = @"C:\miss.txt";
+            newSetting.log = @"C:\log.txt";
+            newSetting.custom = @"C:\custom.txt";
 
             newSetting.modules = new string[]{
                                 "Module1",
@@ -58,9 +57,9 @@ namespace ConversationTranslator
                 _settings = DefaultSettings();
             }
 
-            AppendLog(string.Format("Setting loaded:\r\n    Origin:{0}\r\n    Target:{1}\r\n    Miss:{2}\r\n    Output:{3}\r\n    Export:{4}\r\n    Root:{5}\r\n", 
+            AppendLog(string.Format("Setting loaded:\r\n    Origin:{0}\r\n    Target:{1}\r\n    Miss:{2}\r\n    Log:{3}\r\n    Custom:{4}\r\n    Root:{5}\r\n", 
                                                            _settings.origin, _settings.target,
-                                                           _settings.miss, _settings.output, _settings.export,
+                                                           _settings.miss, _settings.log, _settings.custom,
                                                            _settings.root));
 
             lstMods.Items.Clear();
@@ -131,7 +130,7 @@ namespace ConversationTranslator
 
                 try
                 {
-                    _trans = new Translator(_settings.origin,
+                    Translator trans = new Translator(_settings.origin,
                                         _settings.target,
                                         this,
                                         cbReadonly.Checked, 
@@ -141,11 +140,11 @@ namespace ConversationTranslator
                                         cbBlueprint.Checked,
                                         cbConversation.Checked);
 
-                    _trans.ConvertConversation(_settings.root,
+                    trans.ConvertConversation(_settings.root,
                                                selected.ToArray(),
                                                _settings.miss,
-                                               _settings.output,
-                                               _settings.export);
+                                               _settings.log,
+                                               _settings.custom);
 
                     MessageBox.Show("Finished!");
                 }
@@ -203,11 +202,11 @@ namespace ConversationTranslator
         public string[] modules; // valid modules
         public string root; // module root folder (<game foder>/modules)
 
-        public string origin; // origin text (E.X: english version)
-        public string target; // target text (E.X: chinese version)
+        public string origin; // origin text (E.X: English version)
+        public string target; // target text (E.X: Chinese version)
 
-        public string miss; // missing record
-        public string output; // output log
-        public string export; // export to custom dlg
+        public string miss; // missing record, all the text you still need to translate
+        public string log; // output log, everything happened during translation
+        public string custom; // export to custom tlk (in plain text), you may translate later
     }
 }

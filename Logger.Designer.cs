@@ -49,17 +49,19 @@
             // 
             this.lstMods.Dock = System.Windows.Forms.DockStyle.Left;
             this.lstMods.FormattingEnabled = true;
-            this.lstMods.ItemHeight = 15;
+            this.lstMods.ItemHeight = 12;
             this.lstMods.Location = new System.Drawing.Point(0, 0);
+            this.lstMods.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.lstMods.Name = "lstMods";
             this.lstMods.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
-            this.lstMods.Size = new System.Drawing.Size(133, 663);
+            this.lstMods.Size = new System.Drawing.Size(101, 530);
             this.lstMods.TabIndex = 1;
             // 
             // splContainer
             // 
             this.splContainer.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splContainer.Location = new System.Drawing.Point(133, 0);
+            this.splContainer.Location = new System.Drawing.Point(101, 0);
+            this.splContainer.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.splContainer.Name = "splContainer";
             this.splContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
             // 
@@ -78,8 +80,9 @@
             // splContainer.Panel2
             // 
             this.splContainer.Panel2.Controls.Add(this.txtLogger);
-            this.splContainer.Size = new System.Drawing.Size(951, 663);
-            this.splContainer.SplitterDistance = 65;
+            this.splContainer.Size = new System.Drawing.Size(712, 530);
+            this.splContainer.SplitterDistance = 51;
+            this.splContainer.SplitterWidth = 3;
             this.splContainer.TabIndex = 2;
             // 
             // cbConversation
@@ -87,9 +90,10 @@
             this.cbConversation.AutoSize = true;
             this.cbConversation.Checked = true;
             this.cbConversation.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbConversation.Location = new System.Drawing.Point(740, 12);
+            this.cbConversation.Location = new System.Drawing.Point(555, 10);
+            this.cbConversation.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.cbConversation.Name = "cbConversation";
-            this.cbConversation.Size = new System.Drawing.Size(189, 19);
+            this.cbConversation.Size = new System.Drawing.Size(144, 16);
             this.cbConversation.TabIndex = 7;
             this.cbConversation.Text = "Include Conversation";
             this.cbConversation.UseVisualStyleBackColor = true;
@@ -99,9 +103,10 @@
             this.cbBlueprint.AutoSize = true;
             this.cbBlueprint.Checked = true;
             this.cbBlueprint.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbBlueprint.Location = new System.Drawing.Point(569, 12);
+            this.cbBlueprint.Location = new System.Drawing.Point(427, 10);
+            this.cbBlueprint.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.cbBlueprint.Name = "cbBlueprint";
-            this.cbBlueprint.Size = new System.Drawing.Size(165, 19);
+            this.cbBlueprint.Size = new System.Drawing.Size(126, 16);
             this.cbBlueprint.TabIndex = 6;
             this.cbBlueprint.Text = "Include Blueprint";
             this.cbBlueprint.UseVisualStyleBackColor = true;
@@ -111,9 +116,10 @@
             this.cbJournal.AutoSize = true;
             this.cbJournal.Checked = true;
             this.cbJournal.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbJournal.Location = new System.Drawing.Point(414, 12);
+            this.cbJournal.Location = new System.Drawing.Point(310, 10);
+            this.cbJournal.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.cbJournal.Name = "cbJournal";
-            this.cbJournal.Size = new System.Drawing.Size(149, 19);
+            this.cbJournal.Size = new System.Drawing.Size(114, 16);
             this.cbJournal.TabIndex = 5;
             this.cbJournal.Text = "Include Journal";
             this.cbJournal.UseVisualStyleBackColor = true;
@@ -121,18 +127,22 @@
             // cbNoTranslate
             // 
             this.cbNoTranslate.AutoSize = true;
-            this.cbNoTranslate.Location = new System.Drawing.Point(414, 37);
+            this.cbNoTranslate.Checked = true;
+            this.cbNoTranslate.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbNoTranslate.Location = new System.Drawing.Point(310, 30);
+            this.cbNoTranslate.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.cbNoTranslate.Name = "cbNoTranslate";
-            this.cbNoTranslate.Size = new System.Drawing.Size(117, 19);
+            this.cbNoTranslate.Size = new System.Drawing.Size(90, 16);
             this.cbNoTranslate.TabIndex = 3;
             this.cbNoTranslate.Text = "Export Only";
             this.cbNoTranslate.UseVisualStyleBackColor = true;
             // 
             // btnLoad
             // 
-            this.btnLoad.Location = new System.Drawing.Point(6, 12);
+            this.btnLoad.Location = new System.Drawing.Point(4, 10);
+            this.btnLoad.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnLoad.Name = "btnLoad";
-            this.btnLoad.Size = new System.Drawing.Size(141, 34);
+            this.btnLoad.Size = new System.Drawing.Size(106, 27);
             this.btnLoad.TabIndex = 4;
             this.btnLoad.Text = "Load Setting";
             this.btnLoad.UseVisualStyleBackColor = true;
@@ -140,9 +150,10 @@
             // 
             // btnSave
             // 
-            this.btnSave.Location = new System.Drawing.Point(153, 12);
+            this.btnSave.Location = new System.Drawing.Point(115, 10);
+            this.btnSave.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnSave.Name = "btnSave";
-            this.btnSave.Size = new System.Drawing.Size(140, 34);
+            this.btnSave.Size = new System.Drawing.Size(105, 27);
             this.btnSave.TabIndex = 3;
             this.btnSave.Text = "Save Setting";
             this.btnSave.UseVisualStyleBackColor = true;
@@ -153,9 +164,10 @@
             this.cbReadonly.AutoSize = true;
             this.cbReadonly.Checked = true;
             this.cbReadonly.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbReadonly.Location = new System.Drawing.Point(537, 37);
+            this.cbReadonly.Location = new System.Drawing.Point(403, 30);
+            this.cbReadonly.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.cbReadonly.Name = "cbReadonly";
-            this.cbReadonly.Size = new System.Drawing.Size(101, 19);
+            this.cbReadonly.Size = new System.Drawing.Size(78, 16);
             this.cbReadonly.TabIndex = 2;
             this.cbReadonly.Text = "Read Only";
             this.cbReadonly.UseVisualStyleBackColor = true;
@@ -163,20 +175,20 @@
             // cbSkipCamp
             // 
             this.cbSkipCamp.AutoSize = true;
-            this.cbSkipCamp.Checked = true;
-            this.cbSkipCamp.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbSkipCamp.Location = new System.Drawing.Point(644, 37);
+            this.cbSkipCamp.Location = new System.Drawing.Point(483, 30);
+            this.cbSkipCamp.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.cbSkipCamp.Name = "cbSkipCamp";
-            this.cbSkipCamp.Size = new System.Drawing.Size(133, 19);
+            this.cbSkipCamp.Size = new System.Drawing.Size(102, 16);
             this.cbSkipCamp.TabIndex = 1;
             this.cbSkipCamp.Text = "Skip Campaign";
             this.cbSkipCamp.UseVisualStyleBackColor = true;
             // 
             // btnStart
             // 
-            this.btnStart.Location = new System.Drawing.Point(299, 12);
+            this.btnStart.Location = new System.Drawing.Point(224, 10);
+            this.btnStart.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnStart.Name = "btnStart";
-            this.btnStart.Size = new System.Drawing.Size(109, 34);
+            this.btnStart.Size = new System.Drawing.Size(82, 27);
             this.btnStart.TabIndex = 0;
             this.btnStart.Text = "Start";
             this.btnStart.UseVisualStyleBackColor = true;
@@ -186,21 +198,23 @@
             // 
             this.txtLogger.Dock = System.Windows.Forms.DockStyle.Fill;
             this.txtLogger.Location = new System.Drawing.Point(0, 0);
+            this.txtLogger.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.txtLogger.Multiline = true;
             this.txtLogger.Name = "txtLogger";
             this.txtLogger.ReadOnly = true;
             this.txtLogger.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtLogger.Size = new System.Drawing.Size(951, 594);
+            this.txtLogger.Size = new System.Drawing.Size(712, 476);
             this.txtLogger.TabIndex = 1;
             // 
             // Logger
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1084, 663);
+            this.ClientSize = new System.Drawing.Size(813, 530);
             this.Controls.Add(this.splContainer);
             this.Controls.Add(this.lstMods);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "Logger";
             this.Text = "Conversation Translator";
             this.Load += new System.EventHandler(this.Logger_Load);
